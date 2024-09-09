@@ -1,0 +1,4 @@
+cluster:
+  "on-premise": "prod"
+  "gke": "gke21"
+  "eks": "eks21"

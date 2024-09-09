@@ -1,0 +1,36 @@
+cronjob:
+  commonAnnotations:
+    corp104.com/jira-issue: ITPMSYSREQ-xxx
+  suspend: $VAR6
+  image:
+    repository: ghcr.io/104corp/bitnami/java
+    tag: "$VAR1"
+  command: ["bash"]
+  args: ["start.sh"]
+  env:
+    - name: NODE_ENV
+      value: $VAR4
+    - name: LANG
+      value: en_US.UTF-8
+  nfs:
+  - claimName: $VAR2-lib
+    mountPath: /opt/AP/Patch_lib
+  - claimName: $VAR2-conf
+    mountPath: /opt/AP/Patch_conf
+  - claimName: $VAR2-program
+    mountPath: /opt/AP/Patch_program
+  - claimName: $VAR2-output
+    mountPath: /opt/AP/Patch_output
+  - claimName: $VAR2-log
+    mountPath: /opt/AP/Patch_log
+  schedule: $VAR3
+  corp104Configs:
+    - name: start.sh
+      value: |
+        $VAR5
+      mountPath: start.sh
+  tolerations:
+  - operator: "Equal"
+    effect: NoSchedule
+    key: cronjob
+    value: ap-server

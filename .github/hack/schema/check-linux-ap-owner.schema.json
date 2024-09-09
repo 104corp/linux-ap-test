@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "owner": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9!@#\\$%\\^&\\*\\)\\(+=._-]+$"
+    }
+  },
+  "required": ["owner"]
+}

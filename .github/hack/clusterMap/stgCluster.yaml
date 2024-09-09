@@ -1,0 +1,4 @@
+cluster:
+  "on-premise": "stg"
+  "gke": "gke11"
+  "eks": "eks11"

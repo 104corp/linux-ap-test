@@ -1,0 +1,11 @@
+annotations:
+  corp104.com/team: 104se
+apiVersion: v2
+dependencies:
+- name: cronjob
+  repository: oci://ghcr.io/104corp/charts
+  version: 1.24.1
+description: A java-ap application Helm chart for Kubernetes
+name: java-ap
+type: application
+version: 0.1.0

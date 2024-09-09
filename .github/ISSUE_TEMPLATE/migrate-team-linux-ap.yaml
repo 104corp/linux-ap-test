@@ -1,0 +1,116 @@
+name: "APPLY AP Cronjob Migration"
+description: 申請 AP 排程程式的轉移
+title: "申請遷移 [APP_NAME] 排程程式到 k8s "
+labels: ["team", "migrate-ap"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      * 此 Issue 提供給需求者填寫轉移 AP 的申請表單，請依照指示填寫完整資訊。
+      * 內容如下:
+        * AP No.
+        * 部署主機
+        * 部署環境
+        * 目標 repo
+          * 目標 branch
+      ## 應用程式
+- type: input
+  id: Project_Owner
+  attributes:
+    label: Project Owner
+    description: 應用程式的聯絡人（必須）。
+    placeholder: ex. rock.yang
+  validations:
+    required: true
+- type: input
+  id: Project_Team
+  attributes:
+    label: Team Name
+    description: 應用程式所屬 team 可以參考 (https://hackmd.io/@104ContainerizationProject/BJFFt1_hK/%2F4et2hUSjRD-sxixTI-_gGQ#%E6%B1%BA%E5%AE%9A-Team-Name)。
+    placeholder: ex. 104team
+  validations:
+    required: true
+- type: input
+  id: AP_No
+  attributes:
+    label: AP No.
+    description: 應用程式所在的 Number，可以從 devmaster 頁面取得（必須）。
+    placeholder: ex. 12345
+  validations:
+    required: true
+- type: input
+  id: linuxapHost
+  attributes:
+    label: Linuxap Host
+    description: 應用程式所使用所在 linuxap 主機位置。
+    placeholder: ex. linuxap1801
+  validations:
+    required: true
+- type: dropdown
+  id: javaVersion
+  attributes:
+    label: Java Version
+    description: 應用程式所使用 openjdk 版號，請選擇大版號:8、11、17。
+    options:
+    - 8
+    - 11
+    - 17
+  validations:
+    required: true
+- type: dropdown
+  id: Team_Repo
+  attributes:
+    label: Team Repo
+    description: 應用程式所使用 k8s-apps 上線 Team Repo 位置 。
+    options:
+    - 104cac-apps
+    - 104jbc-apps
+    - 104se-apps
+    - 104vip-apps
+    - 104isgd-devops-gitops-apps
+    - k8s-104dtt-apps
+    - k8s-104fp-app
+    - k8s-104mis-apps
+    - k8s-aiteam-apps
+    - k8s-infra-apps
+- type: input
+  id: Repo_Branch
+  attributes:
+    label: Repo Branch
+    description: Team Repo 使用 Branch 。
+    placeholder: ex. main
+  validations:
+    required: true
+- type: dropdown
+  id: Environment
+  attributes:
+    label: Env Location
+    description: 應用程式所在環境，請選擇 lab、stg、prod。
+    options:
+    - lab
+    - stg
+    - prod
+    - dr
+- type: dropdown
+  id: ClusterLocation
+  attributes:
+    label: Cluster Location
+    description: 應用程式所在叢集，目前僅轉移地端環境 on-premise 。
+    options:
+    - on-premise
+- type: input
+  id: crontab
+  attributes:
+    label: Crontab Time
+    description: 應用程式排程時間，協助填寫 " Min Hours Day mount day "。
+    placeholder: ex. 0 0 * * *
+  validations:
+    required: true
+- type: dropdown
+  id: drrun
+  attributes:
+    label: DR RUN
+    description: 是否可以與 prod 環境執行，請選擇 yes 或 no，lab、stg 都寫 yes。
+    options:
+    - yes
+    - no

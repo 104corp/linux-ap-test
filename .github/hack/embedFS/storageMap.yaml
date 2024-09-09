@@ -1,0 +1,65 @@
+nfs:
+  lab:
+  - volume: program
+    server: na.104dc-dev.com
+    server_path: /data/linuxap/$linuxap/Patch_program
+  - volume: lib
+    server: na.104dc-dev.com
+    server_path: /data/linuxap/$linuxap/Patch_lib
+  - volume: conf
+    server: na.104dc-dev.com
+    server_path: /data/linuxap/$linuxap/Patch_conf
+  - volume: log
+    server: na-ap.104dc-dev.com
+    server_path: /opt/AP/Patch_log
+  - volume: output
+    server: na-ap.104dc-dev.com
+    server_path: /opt/AP/Patch_output
+  stg:
+    - volume: program
+      server: na.104dc-staging.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_program
+    - volume: lib
+      server: na.104dc-staging.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_lib
+    - volume: conf
+      server: na.104dc-staging.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_conf
+    - volume: log
+      server: na-ap.104dc-staging.com
+      server_path: /opt/AP/Patch_log
+    - volume: output
+      server: na-ap.104dc-staging.com
+      server_path: /opt/AP/Patch_output
+  prod:
+    - volume: program
+      server: na02.104dc.com
+      server_path: /vol/vldata/linuxap//$linuxap/Patch_program
+    - volume: lib
+      server: na02.104dc.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_lib
+    - volume: conf
+      server: na02.104dc.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_conf
+    - volume: log
+      server: na-ap.104dc.com
+      server_path: /opt/AP/Patch_log
+    - volume: output
+      server: na-ap.104dc.com
+      server_path: /opt/AP/Patch_output
+  dr:
+    - volume: program
+      server: na02.104dc.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_program
+    - volume: lib
+      server: na02.104dc.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_lib
+    - volume: conf
+      server: na02.104dc.com
+      server_path: /vol/vldata/linuxap/$linuxap/Patch_conf
+    - volume: log
+      server: na-ap.104dc.com
+      server_path: /opt/AP/Patch_log
+    - volume: output
+      server: na-ap.104dc.com
+      server_path: /opt/AP/Patch_output

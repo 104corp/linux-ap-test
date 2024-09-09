@@ -1,0 +1,37 @@
+name: Check the resource request issue
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+  workflow_dispatch: {}
+jobs:
+  check-register-a-team-repository-issue:
+    if: ${{ github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'migrate-ap') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the issue format
+        env:
+          INPUT_ISSUE: ${{ toJson(github.event.issue)}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./.github/hack/dist/check-issue-input-valid
+      - name: Check the issue format
+        id: check-issue-format
+        env:
+          INPUT_ISSUE: ${{ toJson(github.event.issue)}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./.github/hack/dist/create-output-issue-resource
+      - name: output the issue format
+        run: |
+          echo "the owner:"${{ steps.check-issue-format.outputs.owner }}
+          echo "the team:"${{ steps.check-issue-format.outputs.team }}
+          echo "the ap_No:"${{ steps.check-issue-format.outputs.apnum }}
+          echo "the linuxap_Host:"${{ steps.check-issue-format.outputs.host }}
+          echo "the java_Version:"${{ steps.check-issue-format.outputs.java }}
+          echo "the team_Repo:"${{ steps.check-issue-format.outputs.repo }}
+          echo "the repo_Branch:"${{ steps.check-issue-format.outputs.branch }}
+          echo "the env:"${{ steps.check-issue-format.outputs.env }}
+          echo "the cluster_Location:"${{ steps.check-issue-format.outputs.location }}
+          echo "the crontab_Time:""${{ steps.check-issue-format.outputs.time }}"

@@ -1,0 +1,5 @@
+location:
+  "lab": "lab"
+  "stg": "staging"
+  "prod": "prod"
+  "gke31": "dr"

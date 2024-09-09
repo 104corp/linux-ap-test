@@ -1,0 +1,193 @@
+name: Create ap cronjob resources for team application
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch: {}
+jobs:
+  build:
+    runs-on: mgt-runner
+    outputs:
+      issue_url: ${{ steps.generate-resources.outputs.issue_url }}
+      owner: ${{ steps.generate-resources.outputs.owner }}
+      team: ${{ steps.generate-resources.outputs.team }}
+      ap_No: ${{ steps.generate-resources.outputs.apnum }}
+      linuxap_Host: ${{ steps.generate-resources.outputs.host }}
+      java_Version: ${{ steps.generate-resources.outputs.java }}
+      team_Repo: ${{ steps.generate-resources.outputs.repo }}
+      repo_Branch: ${{ steps.generate-resources.outputs.branch }}
+      env: ${{ steps.generate-resources.outputs.env }}
+      cluster_Location: ${{ steps.generate-resources.outputs.location }}
+      crontab_Time: ${{ steps.create-branch.outputs.time }}
+      branch: ${{ steps.git_push.outputs.branch }}
+      resource_branch: ${{ steps.resource_push.outputs.branch }}
+      namespace: ${{ steps.generate-resources.outputs.namespace }}
+      suspend: ${{ steps.dr_push.outputs.suspend }}
+    if: |
+      github.event.issue.state == 'open' &&
+      contains(github.event.issue.labels.*.name, 'migrate-ap') &&
+      contains(github.event.issue.labels.*.name, 'valid') &&
+      !contains(github.event.issue.labels.*.name, 'approved')
+    steps:
+    - name: Check if the current actor is admin?
+      uses: prince-chrismc/check-actor-permissions-action@v3.0.0
+      with:
+        permission: admin
+    - name: Is this request has not been approved?
+      if: ${{ github.event.comment.body != '/approve' }}
+      run: |
+        echo "This request needs to be approved"
+        exit 1
+    - name: Add approved label
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      run: |
+        gh issue edit ${{ github.event.issue.html_url }} --add-label approved
+        gh issue edit ${{ github.event.issue.html_url }} --remove-label needs-approve
+    - uses: actions/checkout@v4
+    - name: Generate ap cronjob resources
+      id: generate-resources
+      env:
+          INPUT_ISSUE: ${{ toJson(github.event.issue) }}
+      run: |
+       ./.github/hack/dist/create-output-issue-resource
+    - name: goam setting
+      id: goam_setting
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        curl -fsS https://raw.githubusercontent.com/104corp/goam/main/scripts/get-goam -H "Authorization: token ${{ secrets.GH_TOKEN }}" | GITHUB_PAT=${{ secrets.GH_TOKEN }} bash -
+    - uses: 104corp/containerization-project/actions/setup-helm@main
+    - name: create file
+      run: |
+        ./.github/hack/script/create-file.sh ${{ steps.generate-resources.outputs.location }} ${{ steps.generate-resources.outputs.apnum }} ${{ steps.generate-resources.outputs.namespace }}
+    - name: Login to GHCR
+      run: |
+        echo ${{ secrets.GH_TOKEN }} | helm registry login --username ${{ github.actor }} --password-stdin ghcr.io
+    - name: git pull repo
+      id: git_pull
+      run: |
+        git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/104corp/${{ steps.generate-resources.outputs.repo }}.git > /dev/null 2>&1
+        git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/104corp/k8s-gitops-infra-rancher.git > /dev/null 2>&1
+    - name: goam create cronjob
+      id: goam_create
+      run: |
+        ./.github/hack/script/goam-create-app.sh ${{ steps.generate-resources.outputs.location }} ${{ steps.generate-resources.outputs.apnum }} ${{ steps.generate-resources.outputs.env }} ${{ steps.generate-resources.outputs.team }} ${{ steps.generate-resources.outputs.repo }}
+    - name: Post run logout from GHCR
+      if: always()
+      run: helm registry logout ghcr.io
+    - name: cp values.yaml
+      env:
+        INPUT_REPO: ${{ steps.generate-resources.outputs.repo }}
+        INPUT_APP: ${{ steps.generate-resources.outputs.apnum }}
+        INPUT_OWNER: ${{ steps.generate-resources.outputs.owner }}
+        INPUT_JAVA: ${{ steps.generate-resources.outputs.java }}
+      run: |
+        ./.github/hack/dist/cp-values-to-global
+        cp output.yaml ${{ steps.generate-resources.outputs.repo }}/ap-${{ steps.generate-resources.outputs.apnum }}/values.yaml
+    - name: cp run.sh
+      env:
+        INPUT_TIME: ${{ steps.generate-resources.outputs.time }}
+        INPUT_JAVA: ${{ steps.generate-resources.outputs.java }}
+        INPUT_APNUM: ${{ steps.generate-resources.outputs.apnum }}
+        INPUT_TEAM: ${{ steps.generate-resources.outputs.team }}
+        INPUT_ENV: ${{ steps.generate-resources.outputs.env }}
+        INPUT_LOCATION: ${{ steps.generate-resources.outputs.location }}
+      run: |
+        .github/hack/dist/cp-values-to-cluster
+        .github/hack/script/create-cluster-values.sh ${{ steps.generate-resources.outputs.apnum }} ${{ steps.generate-resources.outputs.repo }} ${{ steps.generate-resources.outputs.env }} ${{ steps.generate-resources.outputs.location }}
+        export branch=${{ steps.generate-resources.outputs.branch }}
+        sed -i "s/targetRevision: main/targetRevision: $branch/" ${{ steps.generate-resources.outputs.repo }}/apps/overlays/${{ steps.generate-resources.outputs.env }}/ap-${{ steps.generate-resources.outputs.apnum }}.argocd.yaml
+        echo "argocd.yaml: ${{ steps.generate-resources.outputs.branch }}"
+        cat ${{ steps.generate-resources.outputs.repo }}/apps/overlays/${{ steps.generate-resources.outputs.env }}/ap-${{ steps.generate-resources.outputs.apnum }}.argocd.yaml
+    - name: git push
+      id: git_push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        cd ${{ steps.generate-resources.outputs.repo }}
+        today=$(date '+%Y-%m-%d')
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        BRANCH="add-cronjob-ap-${{ steps.generate-resources.outputs.apnum }}-${today}-${RANDOM}"
+        git checkout -b $BRANCH
+        git add --all
+        git status
+        git commit -a -m "feat(mgmt): add application in team repo"
+        git push --set-upstream origin $BRANCH
+        echo "::set-output name=branch::$BRANCH"
+        git branch -r
+    - name: create namespace github request
+      env:
+        INPUT_APNUM: ${{ steps.generate-resources.outputs.apnum }}
+        INPUT_TEAM: ${{ steps.generate-resources.outputs.team }}
+        INPUT_LOCATION: ${{ steps.generate-resources.outputs.location }}
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      run: |
+        ./.github/hack/dist/apply-issue-for-namespace
+    - name: create pvc github request
+      env:
+        INPUT_REPO: ${{ steps.generate-resources.outputs.repo }}
+        INPUT_APNUM: ${{ steps.generate-resources.outputs.apnum }}
+        INPUT_TEAM: ${{ steps.generate-resources.outputs.team }}
+        INPUT_LOCATION: ${{ steps.generate-resources.outputs.location }}
+        INPUT_HOST: ${{ steps.generate-resources.outputs.host }}
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+      run: |
+        ./.github/hack/dist/apply-issue-for-pvc
+    - name: push resource
+      id: resource_push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        cd k8s-gitops-infra-rancher
+        today=$(date '+%Y-%m-%d')
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        BRANCH="add-static-pvc-${today}-${RANDOM}"
+        git checkout -b $BRANCH
+        git add --all
+        git status
+        git commit -a -m "feat(mgmt): add application in team repo"
+        git push --set-upstream origin $BRANCH
+        echo "::set-output name=branch::$BRANCH"
+        git branch -r
+  create-pr:
+    needs: build
+    runs-on: mgt-runner
+    steps:
+      - uses: actions/checkout@v4
+      - name: check branch name
+        run: |
+          echo "values: ${{ needs.build.outputs.branch }}"
+      - name: Create PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/104corp/${{ needs.build.outputs.team_Repo }}.git > /dev/null 2>&1
+          cd ${{ needs.build.outputs.team_Repo }}
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git branch -r
+          gh pr create \
+            --base ${{ needs.build.outputs.repo_Branch }} \
+            --head ${{ needs.build.outputs.branch }} \
+            --draft \
+            --title "feat(${{ needs.build.outputs.env }}): add application ap-${{ needs.build.outputs.ap_No }}" \
+            --body '🤖 This PR is created by the Action Bot with issue ${{ needs.build.outputs.issue_url }}'
+      - name: Create reource PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/104corp/k8s-gitops-infra-rancher.git > /dev/null 2>&1
+          cd k8s-gitops-infra-rancher
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git branch -r
+          git checkout ${{ needs.build.outputs.resource_branch }}
+          gh pr create \
+            --base main \
+            --head ${{ needs.build.outputs.resource_branch }} \
+            --draft \
+            --title "feat(mgmt): add application ap-${{ needs.build.outputs.ap_No }}" \
+            --body '🤖 This PR is created by the Action Bot with issue ${{ needs.build.outputs.issue_url }}'

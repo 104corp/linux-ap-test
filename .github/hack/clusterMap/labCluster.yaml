@@ -1,0 +1,4 @@
+cluster:
+  "on-premise": "lab"
+  "gke": "gke01"
+  "eks": "eks01"
